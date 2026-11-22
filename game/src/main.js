@@ -1,13 +1,13 @@
-// Grand City — entry point. Bootstraps every module, owns the frame loop,
-// input and the game state. Every subsystem lives in its own file.
+// Grand City — entry point.
+// main.js owns the frame loop, input boot and the mutable game state.
+// Every subsystem (city, cars, peds, bullets, missions, HUD, audio) lives in its own module.
 import { initInput, keys, pointer, justDown } from "./input.js";
 import { initWorld, updateWorld, drawWorld } from "./world.js";
-import { initAudio } from "./audio.js";
+import { initAudio, gunshot, punchHit } from "./audio.js";
 import { drawHud } from "./hud.js";
 import { player, enterVehicle, exitVehicle, hitPlayer } from "./player.js";
-import { cam } from "./cars.js";
-import { shootBullet } from "./weapons.js";
-import { gunshot, punchHit } from "./audio.js";
+import { cars, cam } from "./cars.js";
+import { shootBullet, hitPed } from "./weapons.js";
 import { pickMission, updateMissions } from "./missions.js";
 
 const canvas = document.getElementById("g");
@@ -29,13 +29,8 @@ const state = {
 };
 
 initInput(canvas);
-canvas.addEventListener("mousedown", (e) => { pointer.down = true; pointer.just = true; pointer.x = e.clientX; pointer.y = e.clientY; });
-canvas.addEventListener("mouseup", () => { pointer.down = false; });
-canvas.addEventListener("mousemove", (e) => { pointer.x = e.clientX; pointer.y = e.clientY; });
-
 let audioOn = false;
 canvas.addEventListener("pointerdown", () => { if (!audioOn) { initAudio(); audioOn = true; } });
-
 initWorld(state);
 
 let last = performance.now();
@@ -44,29 +39,11 @@ function frame(now) {
   last = now;
   if (state.mode === "playing") {
     updateWorld(dt, state);
-
-    if (justDown() && player.health > 0 && !player.inCar) {
-      const a = Math.atan2(pointer.y + cam.y - canvas.height / 2 - player.y,
-                         pointer.x + cam.x - canvas.width / 2 - player.x);
-      shootBullet(player.x, player.y, a);
-      gunshot();
-      state.wanted = Math.min(4, state.wanted + 0.8);
-      say(state, "SHOTS FIRED");
-    }
-    if (justDown() && player.health > 0 && !player.inCar) {
-      if (hitPed(player.x, player.y, 26, state)) { punchHit(); state.wanted = Math.min(4, state.wanted + 0.5); say(state, "PUNCH"); }
-    }
-
-    // F exits the current vehicle.
-    if (player.inCar) {
-      if (!state.carExitReady) state.carExitReady = true;
-    } else {
-      state.carExitReady = false;
-    }
-    if (keys.KeyF && state.carExitReady && player.inCar) { exitVehicle(player); state.carExitReady = false; }
+    handleInput(state);
+    if (player.dead) state.mode = "gameover";
   }
 
-  ctx.fillStyle = "#0e121c";
+  ctx.fillStyle = "#0b0c14";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (state.mode === "playing") {
     ctx.save();
@@ -81,8 +58,62 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-function say(s, t) { s.msg = t; s.msgTime = nowMs(); }
-function nowMs() { return performance.now(); }
+function say(text) { state.msg = text; state.msgTime = performance.now(); }
+
+function worldPointer() {
+  return { x: pointer.x + cam.x - canvas.width / 2, y: pointer.y + cam.y - canvas.height / 2 };
+}
+
+function enterNearestCar() {
+  let best = null, bestD = 60;
+  for (const c of cars) {
+    if (!c.alive || c.driver) continue;
+    const d = Math.hypot(c.x - player.x, c.y - player.y);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  if (best) enterVehicle(player, best);
+}
+
+function handleInput(s) {
+  // F toggles the vehicle the player sits in (or the nearest empty one on foot).
+  if (player.inCar) { if (!s.carExitReady) s.carExitReady = true; }
+  else { s.carExitReady = false; }
+  if (keys.KeyF && s.carExitReady) {
+    if (player.inCar) { exitVehicle(player); }
+    else { enterNearestCar(); }
+    s.carExitReady = false;
+  }
+
+  if (!justDown() || player.inCar) return;
+  const punched = hitPed(player.x, player.y, 26, s);
+  if (punched) { punchHit(); s.wanted = Math.min(4, s.wanted + 0.5); say("PUNCH"); return; }
+  const wp = worldPointer();
+  const a = Math.atan2(wp.y - player.y, wp.x - player.x);
+  shootBullet(player.x, player.y, a);
+  gunshot();
+  s.wanted = Math.min(4, s.wanted + 0.8);
+  say("SHOTS FIRED");
+}
+
+function beginGame(s) {
+  s.money = 0; s.wanted = 0; s.health = 100; s.score = 0; s.missionsDone = []; s.mission = pickMission(s);
+  player.x = 640; player.y = 640; player.inCar = false; player.car = null; player.health = 100; player.dead = false;
+  say("MISSION: " + (s.mission ? s.mission.title : "Explore the city."));
+}
+
+function loadSave(s) {
+  try {
+    const d = JSON.parse(localStorage.getItem("gc.save") || "{}");
+    if (d) { s.money = d.money || 0; s.missionsDone = d.missionsDone || []; s.health = 100; s.wanted = 0; }
+  } catch (_) {}
+}
+
+canvas.addEventListener("mousedown", (e) => {
+  if (state.mode === "gameover") { beginGame(state); state.mode = "playing"; }
+});
+
+document.getElementById("btNew").onclick = () => { beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
+document.getElementById("btLoad").onclick = () => { loadSave(state); beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
 
 function drawStart(ctx) {
   ctx.fillStyle = "#0b0c16";
@@ -105,24 +136,6 @@ function drawStart(ctx) {
   ctx.fillText("START GAME", canvas.width / 2 - 48, canvas.height / 2 + 77);
 }
 
-function beginGame(s) {
-  s.money = 0; s.wanted = 0; s.health = 100; s.score = 0; s.missionsDone = []; s.mission = pickMission(s);
-  player.x = 520; player.y = 660; player.inCar = false; player.car = null; player.health = 100; player.dead = false; score = 0;
-  say(s, "MISSION: " + (s.mission ? s.mission.title : "Explore the city."));
-}
-
-function loadSave(s) {
-  try {
-    const d = JSON.parse(localStorage.getItem("gc.save") || "{}");
-    if (d) { s.money = d.money || 0; s.missionsDone = d.missionsDone || []; s.health = 100; s.wanted = 0; }
-  } catch (_) {}
-}
-
-function resetWorld(s) { player.inCar = false; player.car = null; player.dead = false; }
-
-document.getElementById("btNew").onclick = () => { beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
-document.getElementById("btLoad").onclick = () => { loadSave(state); beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
-
 function drawGameOver(ctx) {
   ctx.fillStyle = "rgba(0,0,0,0.75)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -134,5 +147,3 @@ function drawGameOver(ctx) {
   ctx.fillText("CREDITS: $" + state.money, canvas.width / 2 - 80, canvas.height / 2 + 20);
   ctx.fillText("CLICK TO RESTART", canvas.width / 2 - 100, canvas.height / 2 + 60);
 }
-canvas.addEventListener("mousedown", () => {
-});

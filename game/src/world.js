@@ -1,38 +1,28 @@
-// The city: blocks of buildings joined by roads. Everything here is drawn
-// first, so every actor lands on top of it. Drives the per-frame update of
-// every live system: cars, pedestrians, bullets and missions.
-import { cars, updateCars, drawCars } from "./cars.js";
+// The city: a 4000 by 4000 block grid joined by roads, full of rectangular
+// buildings with lit windows, mission zones, traffic cars, pedestrians and bullets.
+// Deterministic: the whole city is built from a seeded PRNG, so every reload
+// shows the exact same blocks, windows, traffic and pedestrian placement.
+import { cars, updateCars, drawCars, addCar } from "./cars.js";
 import { peds, updatePeds, drawPeds } from "./peds.js";
-import { bullets, updateBullets, drawBullets, hitPed } from "./weapons.js";
+import { updateBullets, drawBullets } from "./weapons.js";
 import { updateMissions } from "./missions.js";
-import { player, hitPlayer } from "./player.js";
+import { player } from "./player.js";
 import { keys } from "./input.js";
 
 export const WORLD_W = 4000;
 export const WORLD_H = 4000;
 export const BLOCK = 100;
-export const buildings = [];   // {x, y, w, h}
-export const zones = [];       // mission zones {x, y, w, h, kind, text}
+export const buildings = [];   // {x, y, w, h, lights: [x,y,...], corner}
+export const zones = [];       // {x, y, w, h, kind, text}
 
-const rng = (() => { let s = 0x9e3779b9; return () => { s = (s + 0x9e3779b9) | 0; s = (s ^ (s << 13)) | 0; s = (s ^ (s >> 17)) | 0; s = (s ^ (s << 5)) | 0; return (s >>> 0) / 0x100000000; }; })();
+const PALETTE = ["#4a5568", "#c53030", "#2f855a", "#ed8936", "#48bb78", "#718096", "#9f7aea"];
 
-export function initWorld(state) {
-  buildings.length = 0;
-  zones.length = 0;
-  const bx = Math.floor(WORLD_W / BLOCK);
-  const by = Math.floor(WORLD_H / BLOCK);
-  for (let by = 0; by < by; by++) {
-    for (let bx = 0; bx < bx; bx++) {
-      if (Math.random() > 0.62) continue;
-      const w = 30 + Math.random() * 64;
-      const h = 30 + Math.random() * 64;
-      buildings.push({ x: bx * BLOCK + 10 + Math.random() * (BLOCK - 20 - w), y: by * BLOCK + 10 + Math.random() * (BLOCK - 20 - h), w, h });
-    }
-  }
-  zones.push({ x: 600, y: 600, w: 120, h: 120, kind: "start", text: "START" });
-  zones.push({ x: 3400, y: 3200, w: 140, h: 140, kind: "docks", text: "DOCKS" });
-  zones.push({ x: 800, y: 3400, w: 140, h: 140, kind: "garage", text: "GARAGE" });
-  zones.push({ x: 2600, y: 800, w: 120, h: 120, kind: "bank", text: "BANK" });
+let rng = 0x243f6a88;
+export function nextRand() {
+  rng ^= rng << 13; rng = rng | 0;
+  rng ^= rng >>> 17; rng = rng | 0;
+  rng ^= rng << 5;   rng = rng | 0;
+  return (rng >>> 0) / 0x100000000;
 }
 
 export function collidesRect(x, y, w, h) {
@@ -46,9 +36,74 @@ export function collidesCircle(x, y, r) {
   for (const b of buildings) {
     const cx = Math.max(b.x, Math.min(x, b.x + b.w));
     const cy = Math.max(b.y, Math.min(y, b.y + b.h));
-    if ((x - cx) ** 2 + (y - cy) ** 2 < r * r) return b;
+    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) < r * r) return b;
   }
   return null;
+}
+
+export function initWorld(_state) {
+  buildings.length = 0;
+  zones.length = 0;
+  cars.length = 0;
+  peds.length = 0;
+
+  const cols = WORLD_W / BLOCK;
+  const rows = WORLD_H / BLOCK;
+  for (let ty = 0; ty < rows; ty++) {
+    for (let tx = 0; tx < cols; tx++) {
+      if (nextRand() > 0.58) continue;
+      const w = 30 + nextRand() * 76;
+      const h = 30 + nextRand() * 76;
+      const b = {
+        x: tx * BLOCK + 10 + nextRand() * (BLOCK - 20 - w),
+        y: ty * BLOCK + 10 + nextRand() * (BLOCK - 20 - h),
+        w, h, lights: [], corner: nextRand() < 0.09,
+      };
+      // Lit windows are decided once at build time — deterministic every frame.
+      for (let yy = b.y + 6; yy < b.y + b.h - 5; yy += 9) {
+        for (let xx = b.x + 6; xx < b.x + b.w - 5; xx += 8) {
+          if (nextRand() < 0.55) b.lights.push(xx, yy);
+        }
+      }
+      buildings.push(b);
+    }
+  }
+
+  zones.push({ x: 600,  y: 600,  w: 120, h: 120, kind: "start",  text: "START" });
+  zones.push({ x: 3400, y: 3200, w: 170, h: 130, kind: "docks",  text: "DOCKS" });
+  zones.push({ x: 800,  y: 3400, w: 150, h: 140, kind: "garage", text: "GARAGE" });
+  zones.push({ x: 2600, y: 800,  w: 130, h: 120, kind: "bank",   text: "BANK" });
+
+  // Traffic seeded onto the road grid.
+  for (let i = 0; i < 16; i++) {
+    const h = nextRand() < 0.5;
+    const x = h ? (nextRand() < 0.5 ? -70 : WORLD_W + 70) : 60 + nextRand() * (WORLD_W - 120);
+    const y = h ? 60 + nextRand() * (WORLD_H - 120) : (nextRand() < 0.5 ? -70 : WORLD_H + 70);
+    const c = addCar(x, y, "traffic", PALETTE[Math.floor(nextRand() * PALETTE.length)]);
+    c.target = {
+      x: h ? (x < WORLD_W / 2 ? WORLD_W + 120 : -120) : x,
+      y: h ? y : (y < WORLD_H / 2 ? WORLD_H + 120 : -120),
+    };
+    c.angle = Math.atan2(c.target.y - c.y, c.target.x - c.x);
+    c.speed = 1.4 + nextRand() * 1.6;
+  }
+
+  // Pedestrians on sidewalks, never inside a building.
+  for (let i = 0; i < 26; i++) {
+    let placed = false;
+    for (let t = 0; t < 12 && !placed; t++) {
+      const x = 40 + nextRand() * (WORLD_W - 80);
+      const y = 40 + nextRand() * (WORLD_H - 80);
+      if (!collidesRect(x - 4, y - 8, 8, 18)) {
+        peds.push({
+          x, y, color: "#cbd5e1", state: "wander", target: { x, y },
+          timer: 30 + nextRand() * 60, speed: 1.0 + nextRand(),
+          dead: false, life: 0,
+        });
+        placed = true;
+      }
+    }
+  }
 }
 
 export function drawWorld(ctx, s) {
@@ -60,45 +115,39 @@ export function drawWorld(ctx, s) {
   for (let gx = BLOCK; gx < WORLD_W; gx += BLOCK) ctx.fillRect(gx - 3, 0, 6, WORLD_H);
   for (let gy = BLOCK; gy < WORLD_H; gy += BLOCK) ctx.fillRect(0, gy - 3, WORLD_W, 6);
 
-  // Buildings.
-  ctx.fillStyle = "#272e39";
-  for (const b of buildings) ctx.fillRect(b.x, b.y, b.w, b.h);
-  ctx.fillStyle = "#e8dcc4";
+  // Buildings: body, precomputed lit windows, neon corners.
   for (const b of buildings) {
-    const wx = 5, wy = 7;
-    for (let yy = b.y + 6; yy < b.y + b.h - 4; yy += wy) {
-      for (let xx = b.x + 6; xx < b.x + b.w - 4; xx += wx) {
-        if (Math.random() > 0.72) continue;
-        ctx.fillRect(xx, yy, 3, 4);
-      }
+    ctx.fillStyle = "#272e39";
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = "#fde68a";
+    for (let i = 0; i < b.lights.length; i += 2) ctx.fillRect(b.lights[i], b.lights[i + 1], 3, 4);
+    if (b.corner) {
+      ctx.fillStyle = "#ff7a5a";
+      ctx.fillRect(b.x + b.w - 9, b.y + 6, 5, 8);
     }
-  }
-  ctx.fillStyle = "#1c222d";
-  for (const b of buildings) ctx.strokeRect(b.x, b.y, b.w, b.h);
-
-  // Corners lights.
-  ctx.fillStyle = "#ff7a5a";
-  for (const b of buildings) {
-    if (Math.random() > 0.92) ctx.fillRect(b.x + b.w - 9, b.y + 6, 5, 8);
+    ctx.strokeStyle = "#1c222d";
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
   }
 
   // Mission zones.
-  ctx.fillStyle = "#22c55e";
   for (const z of zones) {
-    ctx.fillStyle = z.kind === "start" ? "#4ade80" : z.kind === "docks" ? "#fbbf24" : z.kind === "garage" ? "#f472b6" : "#38bdf8";
-    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = z.kind === "start" ? "#4ade80" : z.kind === "docks" ? "#fbbf24"
+      : z.kind === "garage" ? "#f472b6" : "#38bdf8";
+    ctx.globalAlpha = 0.5;
     ctx.fillRect(z.x, z.y, z.w, z.h);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "#fff";
-    ctx.font = "13px system-ui,-apple-system,Segoe UI,sans-serif";
-    ctx.fillText(z.text, z.x + 6, z.y + z.h / 2 + 4);
+    ctx.strokeStyle = "#ffffff";
+    ctx.strokeRect(z.x, z.y, z.w, z.h);
+    ctx.fillStyle = "#050505";
+    ctx.font = "bold 13px system-ui,-apple-system,Segoe UI,sans-serif";
+    ctx.fillText(z.text, z.x + 8, z.y + z.h / 2 + 5);
   }
 
   drawCars(ctx);
   drawPeds(ctx);
   drawBullets(ctx);
 
-  if (!player.inCar) {
+  if (!player.inCar && player.health > 0) {
     ctx.fillStyle = "#4ade80";
     ctx.beginPath();
     ctx.arc(player.x, player.y, 6, 0, Math.PI * 2);
@@ -124,8 +173,8 @@ export function updateWorld(dt, s) {
     if (keys.ArrowRight || keys.KeyD) mx += 1;
     if (mx !== 0 || my !== 0) {
       const d = Math.hypot(mx, my);
-      player.vx = mx / d * 165;
-      player.vy = my / d * 165;
+      player.vx = mx / d * 170;
+      player.vy = my / d * 170;
       player.angle = Math.atan2(my, mx);
     } else {
       player.vx = player.vy = 0;
@@ -140,5 +189,4 @@ export function updateWorld(dt, s) {
   }
 }
 
-function sayWorld(s, t) { s.msg = t; s.msgTime = nowMs(); }
-function nowMs() { return performance.now(); }
+function sayWorld(s, t) { s.msg = t; s.msgTime = performance.now(); }

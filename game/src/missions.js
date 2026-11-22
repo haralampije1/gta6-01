@@ -41,7 +41,7 @@ export function updateMissions(dt, s, onSay) {
   const zone = zones.find(z => z.kind === st.zone);
   if (!zone) return;
   const d = player.car || player;
-  if (Math.hypot(d.x - (zone.x + z.w / 2), d.y - (zone.y + z.h / 2)) < z.w / 2 + 55) {
+  if (Math.hypot(d.x - (zone.x + zone.w / 2), d.y - (zone.y + z.h / 2)) < zone.w / 2 + 55) {
     m.stepIdx++;
     if (m.stepIdx >= m.steps.length) {
       m.done = true;

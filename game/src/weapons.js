@@ -1,4 +1,10 @@
 // Bullets and shooting: player on foot, police shooting back.
+import { collidesRect } from "./world.js";
+import { cars } from "./cars.js";
+import { peds } from "./peds.js";
+import { player, hitPlayer } from "./player.js";
+import { gunshot } from "./audio.js";
+
 export const bullets = [];
 let policeShootT = 0;
 

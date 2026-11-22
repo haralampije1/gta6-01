@@ -173,8 +173,6 @@ export function drawCars(ctx) {
   }
 }
 
-import { keys } from "./input.js";
-
 export function resetCars() {
   cars.length = 0;
   spawnTraffic();
