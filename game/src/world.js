@@ -1,8 +1,10 @@
-// The city: a 4000 by 4000 block grid joined by roads, full of rectangular
-// buildings with lit windows, mission zones, traffic cars, pedestrians and bullets.
-// Deterministic: the whole city is built from a seeded PRNG, so every reload
-// shows the exact same blocks, windows, traffic and pedestrian placement.
-import { cars, updateCars, drawCars, addCar } from "./cars.js";
+// Grand City — the 4000 by 4000 city.
+// The grid is roads every 100 pixels with rectangular buildings between
+// them. Everything is seeded from one PRNG, so a reload shows the exact
+// same blocks, windows, traffic and pedestrian placement every time.
+// Every frame draws the lot and updates cars, peds, bullets, the player
+// on foot and the chasing camera.
+import { addCar, cars, cam, updateCars, drawCars, enterCar } from "./cars.js";
 import { peds, updatePeds, drawPeds } from "./peds.js";
 import { updateBullets, drawBullets } from "./weapons.js";
 import { updateMissions } from "./missions.js";
@@ -12,17 +14,17 @@ import { keys } from "./input.js";
 export const WORLD_W = 4000;
 export const WORLD_H = 4000;
 export const BLOCK = 100;
-export const buildings = [];   // {x, y, w, h, lights: [x,y,...], corner}
-export const zones = [];       // {x, y, w, h, kind, text}
+export const buildings = []; // {x, y, w, h, lights: [x, y, ...], corner}
+export const zones = [];     // {x, y, w, h, kind, text}
 
 const PALETTE = ["#4a5568", "#c53030", "#2f855a", "#ed8936", "#48bb78", "#718096", "#9f7aea"];
 
-let rng = 0x243f6a88;
+let seed = 0x243f6a88 | 0;
 export function nextRand() {
-  rng ^= rng << 13; rng = rng | 0;
-  rng ^= rng >>> 17; rng = rng | 0;
-  rng ^= rng << 5;   rng = rng | 0;
-  return (rng >>> 0) / 0x100000000;
+  seed ^= seed << 13; seed = seed | 0;
+  seed ^= seed >>> 17; seed = seed | 0;
+  seed ^= seed << 5;   seed = seed | 0;
+  return (seed >>> 0) / 0x100000000;
 }
 
 export function collidesRect(x, y, w, h) {
@@ -59,7 +61,6 @@ export function initWorld(_state) {
         y: ty * BLOCK + 10 + nextRand() * (BLOCK - 20 - h),
         w, h, lights: [], corner: nextRand() < 0.09,
       };
-      // Lit windows are decided once at build time — deterministic every frame.
       for (let yy = b.y + 6; yy < b.y + b.h - 5; yy += 9) {
         for (let xx = b.x + 6; xx < b.x + b.w - 5; xx += 8) {
           if (nextRand() < 0.55) b.lights.push(xx, yy);
@@ -74,7 +75,6 @@ export function initWorld(_state) {
   zones.push({ x: 800,  y: 3400, w: 150, h: 140, kind: "garage", text: "GARAGE" });
   zones.push({ x: 2600, y: 800,  w: 130, h: 120, kind: "bank",   text: "BANK" });
 
-  // Traffic seeded onto the road grid.
   for (let i = 0; i < 16; i++) {
     const h = nextRand() < 0.5;
     const x = h ? (nextRand() < 0.5 ? -70 : WORLD_W + 70) : 60 + nextRand() * (WORLD_W - 120);
@@ -88,7 +88,6 @@ export function initWorld(_state) {
     c.speed = 1.4 + nextRand() * 1.6;
   }
 
-  // Pedestrians on sidewalks, never inside a building.
   for (let i = 0; i < 26; i++) {
     let placed = false;
     for (let t = 0; t < 12 && !placed; t++) {
@@ -110,12 +109,10 @@ export function drawWorld(ctx, s) {
   ctx.fillStyle = "#0f131d";
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-  // Road grid.
   ctx.fillStyle = "#2d3442";
   for (let gx = BLOCK; gx < WORLD_W; gx += BLOCK) ctx.fillRect(gx - 3, 0, 6, WORLD_H);
   for (let gy = BLOCK; gy < WORLD_H; gy += BLOCK) ctx.fillRect(0, gy - 3, WORLD_W, 6);
 
-  // Buildings: body, precomputed lit windows, neon corners.
   for (const b of buildings) {
     ctx.fillStyle = "#272e39";
     ctx.fillRect(b.x, b.y, b.w, b.h);
@@ -129,7 +126,6 @@ export function drawWorld(ctx, s) {
     ctx.strokeRect(b.x, b.y, b.w, b.h);
   }
 
-  // Mission zones.
   for (const z of zones) {
     ctx.fillStyle = z.kind === "start" ? "#4ade80" : z.kind === "docks" ? "#fbbf24"
       : z.kind === "garage" ? "#f472b6" : "#38bdf8";

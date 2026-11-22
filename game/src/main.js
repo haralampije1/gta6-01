@@ -1,19 +1,24 @@
 // Grand City — entry point.
 // main.js owns the frame loop, input boot and the mutable game state.
 // Every subsystem (city, cars, peds, bullets, missions, HUD, audio) lives in its own module.
+// URL parameter `shot` runs a fixed demo route (title, play, chase) for screenshots.
 import { initInput, keys, pointer, justDown } from "./input.js";
 import { initWorld, updateWorld, drawWorld } from "./world.js";
 import { initAudio, gunshot, punchHit } from "./audio.js";
 import { drawHud } from "./hud.js";
 import { player, enterVehicle, exitVehicle, hitPlayer } from "./player.js";
-import { cars, cam } from "./cars.js";
-import { shootBullet, hitPed } from "./weapons.js";
+import { cars, cam, resetCars } from "./cars.js";
+import { shootBullet } from "./weapons.js";
 import { pickMission, updateMissions } from "./missions.js";
+import { hitPed } from "./peds.js";
 
 const canvas = document.getElementById("g");
 const ctx = canvas.getContext("2d", { alpha: false });
-canvas.width = 1280;
-canvas.height = 720;
+const params = new URLSearchParams(location.search);
+const SHOT = params.get("shot");
+const DEMO = SHOT === "title" || SHOT === "play" || SHOT === "chase";
+canvas.width = DEMO ? 1440 : 1280;
+canvas.height = DEMO ? 900 : 720;
 
 const state = {
   mode: "start",
@@ -33,13 +38,23 @@ let audioOn = false;
 canvas.addEventListener("pointerdown", () => { if (!audioOn) { initAudio(); audioOn = true; } });
 initWorld(state);
 
+const DEMO_START = performance.now();
+const DEMO_WAYPOINTS = [
+  { x: 1500, y: 700 },
+  { x: 1500, y: 1350 },
+  { x: 900, y: 1350 },
+  { x: 900, y: 750 },
+];
+let demoWaypoint = 0;
+
 let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
   if (state.mode === "playing") {
     updateWorld(dt, state);
-    handleInput(state);
+    if (DEMO) demoRoute(state, now);
+    else handleInput(state);
     if (player.dead) state.mode = "gameover";
   }
 
@@ -75,7 +90,6 @@ function enterNearestCar() {
 }
 
 function handleInput(s) {
-  // F toggles the vehicle the player sits in (or the nearest empty one on foot).
   if (player.inCar) { if (!s.carExitReady) s.carExitReady = true; }
   else { s.carExitReady = false; }
   if (keys.KeyF && s.carExitReady) {
@@ -93,6 +107,26 @@ function handleInput(s) {
   gunshot();
   s.wanted = Math.min(4, s.wanted + 0.8);
   say("SHOTS FIRED");
+}
+
+// Fixed four-second demo route: the car steers between waypoints; on
+// `chase` the wanted level is four so police cruisers give chase.
+function demoRoute(s, now) {
+  const car = player.car;
+  if (!car) return;
+  const goal = DEMO_WAYPOINTS[demoWaypoint];
+  if (Math.hypot(goal.x - car.x, goal.y - car.y) < 100) demoWaypoint = (demoWaypoint + 1) % DEMO_WAYPOINTS.length;
+  const target = DEMO_WAYPOINTS[demoWaypoint];
+  const a = Math.atan2(target.y - car.y, target.x - car.x);
+  let delta = a - car.angle;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  car.angle += delta * 0.15;
+  car.speed = SHOT === "chase" ? 4.2 : 3.0;
+  car.vx = Math.cos(car.angle) * car.speed;
+  car.vy = Math.sin(car.angle) * car.speed;
+  if (SHOT === "chase") s.wanted = 4;
+  else if (now - DEMO_START > 2000) s.wanted = Math.min(4, s.wanted + 0.04);
 }
 
 function beginGame(s) {
@@ -115,6 +149,27 @@ canvas.addEventListener("mousedown", (e) => {
 document.getElementById("btNew").onclick = () => { beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
 document.getElementById("btLoad").onclick = () => { loadSave(state); beginGame(state); document.getElementById("start").style.display = "none"; state.mode = "playing"; };
 
+// M brings up the current mission text.
+window.addEventListener("keydown", (e) => {
+  if (e.code === "KeyM" && state.mode === "playing" && state.mission) {
+    const m = state.mission;
+    const st = (m.steps || [])[m.stepIdx || 0];
+    say("MISSION: " + m.title + (st ? " — " + st.text : ""));
+  }
+});
+
+if (DEMO && SHOT !== "title") {
+  beginGame(state);
+  resetCars();
+  document.getElementById("start").style.display = "none";
+  state.mode = "playing";
+  if (SHOT === "chase") {
+    player.car.x = 760; player.car.y = 3360;
+    player.x = 760; player.y = 3360;
+    state.wanted = 4;
+  }
+}
+
 function drawStart(ctx) {
   ctx.fillStyle = "#0b0c16";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -129,11 +184,12 @@ function drawStart(ctx) {
   ctx.fillText("WASD drive/walk", canvas.width / 2 - 140, canvas.height / 2 + 10);
   ctx.fillText("CLICK shoot/punch", canvas.width / 2 - 140, canvas.height / 2 + 28);
   ctx.fillText("F enter/exit vehicle", canvas.width / 2 - 140, canvas.height / 2 + 46);
+  ctx.fillText("M mission text", canvas.width / 2 - 140, canvas.height / 2 + 64);
   ctx.fillStyle = "#4ade80";
-  ctx.fillRect(canvas.width / 2 - 55, canvas.height / 2 + 55, 110, 34);
+  ctx.fillRect(canvas.width / 2 - 55, canvas.height / 2 + 88, 110, 34);
   ctx.fillStyle = "#052e16";
   ctx.font = "15px system-ui";
-  ctx.fillText("START GAME", canvas.width / 2 - 48, canvas.height / 2 + 77);
+  ctx.fillText("START GAME", canvas.width / 2 - 48, canvas.height / 2 + 113);
 }
 
 function drawGameOver(ctx) {

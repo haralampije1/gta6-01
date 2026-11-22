@@ -1,4 +1,5 @@
-// Bullets and shooting: player on foot, police shooting back.
+// Grand City — weapons: bullets, shooting, impacts, gunshot and crash sounds.
+// Player on foot fires; police cruisers shoot back at wanted level one and up.
 import { collidesRect } from "./world.js";
 import { cars } from "./cars.js";
 import { peds } from "./peds.js";

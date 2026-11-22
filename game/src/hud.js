@@ -1,4 +1,7 @@
-// HUD overlay drawn in screen space (camera-corrected by main.js).
+// Grand City — heads-up display, drawn in screen space.
+// Top left: money ($), wanted stars, health bar (colour shifts below 50 %).
+// Top right: police pursuit notice while wanted. Bottom centre: the mission
+// dash — title and current step — plus the floating message.
 import { player } from "./player.js";
 import { cars } from "./cars.js";
 import { zones } from "./world.js";
@@ -21,8 +24,9 @@ export function drawHud(ctx, s) {
   const wanted = Math.max(0, s.wanted | 0);
   const health = Math.max(0, Math.min(100, s.health | 0));
 
-  // ---- Top-left status panel: money, wanted stars, health bar.
   ctx.save();
+
+  // Top-left status panel: money, wanted stars, health bar.
   ctx.fillStyle = PANEL;
   ctx.fillRect(12, 12, 240, 120);
   ctx.fillStyle = PANEL2;
@@ -45,20 +49,17 @@ export function drawHud(ctx, s) {
   ctx.fillRect(28, 88, health * 2, 10);
   ctx.strokeStyle = "#334155";
   ctx.strokeRect(27, 87, 200, 12);
-  ctx.restore();
 
-  // ---- Top-right wanted dispatch notice.
+  // Top-right police pursuit notice.
   if (wanted > 0) {
-    ctx.save();
     ctx.fillStyle = "rgba(239, 68, 68, 0.14)";
     ctx.fillRect(W - 310, 12, 298, 44);
     ctx.fillStyle = WANTED;
     ctx.font = "bold 15px system-ui";
     ctx.fillText("POLICE PURSUIT — WANTED LEVEL " + wanted, W - 294, 32);
-    ctx.restore();
   }
 
-  // ---- Bottom-center mission banner with current step.
+  // Bottom-centre mission dash: title and current step.
   const mission = s.mission;
   if (mission && mission.title) {
     const steps = mission.steps || [];
@@ -71,7 +72,6 @@ export function drawHud(ctx, s) {
     const x = W / 2 - boxW / 2;
     const y = H - 160;
 
-    ctx.save();
     ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
     ctx.fillRect(x, y, boxW, 58);
     ctx.fillStyle = "#f1f5f9";
@@ -82,19 +82,18 @@ export function drawHud(ctx, s) {
       ctx.font = "13px system-ui";
       ctx.fillText(stepText, W / 2 - stepW / 2, y + 46);
     }
-    ctx.restore();
   }
 
-  // ---- Bottom-center floating message.
+  // Bottom-centre floating message.
   if (s.msg && nowMs() - (s.msgTime || 0) < 2500) {
     const msgW = ctx.measureText(s.msg).width;
     const x = W / 2 - msgW / 2 - 24;
-    ctx.save();
     ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
     ctx.fillRect(x, H - 210, msgW + 48, 34);
     ctx.fillStyle = "#f8fafc";
     ctx.font = "14px system-ui, -apple-system, Segoe UI, sans-serif";
     ctx.fillText(s.msg, W / 2 - msgW / 2, H - 182);
-    ctx.restore();
   }
+
+  ctx.restore();
 }
