@@ -1,6 +1,6 @@
 // GTA-01 entry point — plumbing only. Runs on Node 22 (stdlib only).
-// Copies game/ and screenshots/ into /output and writes dossier.json with
-// the vendored make.fun library, exactly as the starter does.
+// Copies game/ and screenshots/ into the output directory and writes
+// dossier.json with the vendored make.fun library, byte deterministically.
 import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,9 @@ const out = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 mkdirSync(out, { recursive: true });
 cpSync(join(here, "game"), join(out, "game"), { recursive: true });
 mkdirSync(join(out, "screenshots"), { recursive: true });
-if (existsSync(join(here, "screenshots"))) cpSync(join(here, "screenshots"), join(out, "screenshots"), { recursive: true });
+if (existsSync(join(here, "screenshots"))) {
+  cpSync(join(here, "screenshots"), join(out, "screenshots"), { recursive: true });
+}
 
 writeFileSync(
   join(out, "dossier.json"),
