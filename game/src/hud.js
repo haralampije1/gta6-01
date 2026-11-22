@@ -1,70 +1,100 @@
-// HUD overlay drawn in screen space (already camera-corrected by main.js).
+// HUD overlay drawn in screen space (camera-corrected by main.js).
 import { player } from "./player.js";
 import { cars } from "./cars.js";
 import { zones } from "./world.js";
 
 const nowMs = () => performance.now();
 
+const PANEL = "rgba(15, 23, 42, 0.6)";
+const PANEL2 = "rgba(30, 41, 59, 0.95)";
+const BORDER = "rgba(148, 163, 184, 0.35)";
+const TEXT = "#e2e8f0";
+const MUTE = "#94a3b8";
+const GOOD = "#86efac";
+const BAD = "#fca5a5";
+const WANTED = "#f87171";
+
 export function drawHud(ctx, s) {
-  ctx.fillStyle = "rgba(15,18,24,0.55)";
-  ctx.fillRect(8, 8, 214, 124);
-  ctx.fillStyle = "rgba(30,41,59,0.9)";
-  ctx.fillRect(10, 10, 210, 120);
+  const W = ctx.canvas.width;
+  const H = ctx.canvas.height;
+  const money = (s.money | 0);
+  const wanted = Math.max(0, s.wanted | 0);
+  const health = Math.max(0, Math.min(100, s.health | 0));
 
-  ctx.fillStyle = "#dee2e6";
-  ctx.font = "13px system-ui,-apple-system,Segoe UI,sans-serif";
-  ctx.fillText("CREDITS $" + s.money, 22, 28);
-  ctx.fillStyle = s.wanted > 0 ? "#fca5a5" : "#bfdbfe";
-  ctx.fillText("WANTED " + "★".repeat(Math.max(0, s.wanted | 0)), 22, 46);
+  // ---- Top-left status panel: money, wanted stars, health bar.
+  ctx.save();
+  ctx.fillStyle = PANEL;
+  ctx.fillRect(12, 12, 240, 120);
+  ctx.fillStyle = PANEL2;
+  ctx.fillRect(14, 14, 236, 116);
+  ctx.strokeStyle = BORDER;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(14, 14, 236, 116);
 
-  ctx.fillStyle = s.health > 50 ? "#86efac" : "#fca5a5";
-  ctx.fillRect(22, 56, Math.max(0, s.health) * 1.2, 8);
+  ctx.fillStyle = TEXT;
+  ctx.font = "bold 14px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.fillText("$ " + money, 28, 34);
+
+  ctx.fillStyle = wanted ? WANTED : MUTE;
+  ctx.fillText("WANTED " + "★".repeat(wanted), 28, 58);
+
+  ctx.fillStyle = MUTE;
+  ctx.font = "12px system-ui";
+  ctx.fillText("HEALTH", 28, 80);
+  ctx.fillStyle = health > 50 ? GOOD : BAD;
+  ctx.fillRect(28, 88, health * 2, 10);
   ctx.strokeStyle = "#334155";
-  ctx.strokeRect(21, 55, 124, 10);
-  ctx.fillStyle = "#94a3b8";
-  ctx.font = "11px system-ui";
-  ctx.fillText("HEALTH", 22, 54);
+  ctx.strokeRect(27, 87, 200, 12);
+  ctx.restore();
 
-  // Minimap (absolute world coords, small scale).
-  ctx.fillStyle = "#0b1020";
-  ctx.fillRect(1076, 8, 152, 100);
-  ctx.strokeStyle = "#334155";
-  ctx.strokeRect(1076, 8, 152, 100);
-  ctx.fillStyle = "#1e293b";
-  ctx.fillRect(1080, 12, 144, 96);
-  const sx = 144 / WORLD_W;
-  const sy = 96 / WORLD_H;
-  const cx = 1080 + 9 + player.x * sx;
-  const cy = 108 + 12 + player.y * sy;
-  ctx.fillStyle = "#4ade80";
-  ctx.fillRect(cx - 2, cy - 2, 4, 4);
-  ctx.fillStyle = s.wanted > 0 ? "#f87171" : "#f59e0b";
-  for (const c of cars) {
-    if (c.type === "police") ctx.fillRect(1080 + 9 + c.x * sx - 1, 108 + 12 + c.y * sy - 1, 3, 3);
+  // ---- Top-right wanted dispatch notice.
+  if (wanted > 0) {
+    ctx.save();
+    ctx.fillStyle = "rgba(239, 68, 68, 0.14)";
+    ctx.fillRect(W - 310, 12, 298, 44);
+    ctx.fillStyle = WANTED;
+    ctx.font = "bold 15px system-ui";
+    ctx.fillText("POLICE PURSUIT — WANTED LEVEL " + wanted, W - 294, 32);
+    ctx.restore();
   }
-  ctx.fillStyle = "#eab308";
-  for (const z of zones) ctx.fillRect(1080 + 9 + z.x * sx - 1, 108 + 12 + z.y * sy - 1, 4, 4);
-  ctx.fillStyle = "#e2e8f0";
-  ctx.font = "11px system-ui";
-  ctx.fillText("MINIMAP", 1090, 20);
 
-  // Mission banner.
-  if (s.mission) {
-    ctx.fillStyle = "rgba(15,23,42,0.72)";
-    ctx.fillRect(438, 620, 404, 40);
+  // ---- Bottom-center mission banner with current step.
+  const mission = s.mission;
+  if (mission && mission.title) {
+    const steps = mission.steps || [];
+    const idx = Number.isFinite(s.missionStepIdx) ? s.missionStepIdx : 0;
+    const stepText = steps[idx] && steps[idx].text ? steps[idx].text : "";
+    const title = "MISSION — " + mission.title;
+    const titleW = ctx.measureText(title).width;
+    const stepW = ctx.measureText(stepText).width;
+    const boxW = Math.max(titleW, stepW) + 56;
+    const x = W / 2 - boxW / 2;
+    const y = H - 160;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+    ctx.fillRect(x, y, boxW, 58);
     ctx.fillStyle = "#f1f5f9";
-    ctx.font = "14px system-ui,-apple-system,Segoe UI,sans-serif";
-    ctx.fillText("MISSION — " + s.mission.title, 448, 636);
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "13px system-ui";
-    ctx.fillText(s.mission.steps[m.stepIdx].text, 448, 654); // eslint-disable-line
+    ctx.font = "15px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.fillText(title, W / 2 - titleW / 2, y + 26);
+    if (stepText) {
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "13px system-ui";
+      ctx.fillText(stepText, W / 2 - stepW / 2, y + 46);
+    }
+    ctx.restore();
   }
 
-  if (s.msg && nowMs() - s.msgTime < 2300) {
-    ctx.fillStyle = "rgba(15,23,42,0.8)";
-    ctx.fillRect(440, 702, 390, 30);
+  // ---- Bottom-center floating message.
+  if (s.msg && nowMs() - (s.msgTime || 0) < 2500) {
+    const msgW = ctx.measureText(s.msg).width;
+    const x = W / 2 - msgW / 2 - 24;
+    ctx.save();
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.fillRect(x, H - 210, msgW + 48, 34);
     ctx.fillStyle = "#f8fafc";
-    ctx.font = "14px system-ui,-apple-system,Segoe UI,sans-serif";
-    ctx.fillText(s.msg, 450, 718);
+    ctx.font = "14px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.fillText(s.msg, W / 2 - msgW / 2, H - 182);
+    ctx.restore();
   }
 }
