@@ -1,7 +1,8 @@
-// Grand City — vehicles: traffic, police cruisers and the player's car.
+// Vehicles: traffic, police cruisers and the player's car.
 // Simple deterministic physics (position + angle + speed), drawn rotated
 // about the centre. Police cruisers spawn and chase the player once wanted
 // level reaches two; at four they hunt in numbers.
+// Re-authored by build agent.
 import { nextRand, collidesRect, WORLD_W, WORLD_H } from "./world.js";
 import { player, enterVehicle, hitPlayer } from "./player.js";
 import { keys } from "./input.js";

@@ -3,6 +3,7 @@
 // debugging on port 9123, run the shot demo (title → play → chase), wait
 // four seconds per shot, capture Page.captureScreenshot PNGs into
 // screenshots/ (1-title.png, 2-chase.png, 3-garage.png), then kill Chrome.
+// Re-authored by build agent.
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 

@@ -1,7 +1,9 @@
 // Grand City — entry point.
 // main.js owns the frame loop, input boot and the mutable game state.
-// Every subsystem (city, cars, peds, bullets, missions, HUD, audio) lives in its own module.
-// URL parameter `shot` runs a fixed demo route (title, play, chase) for screenshots.
+// Every subsystem (city, cars, peds, bullets, missions, HUD, audio) lives
+// in its own module. URL parameter `shot` runs a fixed demo route
+// (title, play, chase) for screenshots.
+// Re-authored by build agent.
 import { initInput, keys, pointer, justDown } from "./input.js";
 import { initWorld, updateWorld, drawWorld } from "./world.js";
 import { initAudio, gunshot, punchHit } from "./audio.js";

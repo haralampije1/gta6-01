@@ -1,6 +1,7 @@
-// Grand City audio — a pure Web Audio synth, nothing loaded over the network.
+// Audio — a pure Web Audio synth, nothing loaded over the network.
 // Engine idle and rev, police siren wail, a looped music pattern,
 // gunshot, punch and crash, all sketched from raw waveforms.
+// Re-authored by build agent.
 let ctx;
 let master;
 

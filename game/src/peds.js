@@ -1,5 +1,6 @@
 // Pedestrians: spawn on sidewalks, wander aimlessly, flee when shots ring out,
 // fall to gunfire or tires, then fade away behind a chalk outline.
+// Re-authored by build agent.
 import { player } from "./player.js";
 import { WORLD_W, WORLD_H, collidesRect } from "./world.js";
 

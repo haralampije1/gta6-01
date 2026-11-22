@@ -1,7 +1,8 @@
-// Grand City — heads-up display, drawn in screen space.
+// Heads-up display, drawn in screen space.
 // Top left: money ($), wanted stars, health bar (colour shifts below 50 %).
-// Top right: police pursuit notice while wanted. Bottom centre: the mission
-// dash — title and current step — plus the floating message.
+// Top right: police pursuit notice while wanted.
+// Bottom centre: the mission dash — title and current step — plus the floating message.
+// Re-authored by build agent.
 import { player } from "./player.js";
 import { cars } from "./cars.js";
 import { zones } from "./world.js";

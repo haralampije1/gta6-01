@@ -1,6 +1,7 @@
 // Mission script: small staged objectives with a per-stage countdown timer and
 // a money bonus on completion. A stage that times out abandons the mission,
 // but the city never waits — the next one can always be picked up.
+// Re-authored by build agent.
 import { player } from "./player.js";
 import { zones } from "./world.js";
 

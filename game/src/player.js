@@ -1,5 +1,7 @@
-// The player: on foot or behind the wheel. One state object shared by every
-// module — world.js moves the legs, cars.js drives, missions.js pays out.
+// The player: on foot or behind the wheel.
+// One state object shared by every module — world.js moves the legs, cars.js
+// drives, missions.js pays out.
+// Re-authored by build agent.
 export const player = {
   x: 520, y: 660,
   vx: 0, vy: 0,

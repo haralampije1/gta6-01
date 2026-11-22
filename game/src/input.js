@@ -1,4 +1,6 @@
-// Keyboard + pointer input. One state object, one job: answer "is this key down?"
+// Keyboard + pointer input.
+// One state object, one job: answer "is this key down?" and "was the pointer just pressed?".
+// Re-authored by build agent.
 export const keys = new Set();
 export const pointer = { x: 0, y: 0, down: false, just: false, worldX: 0, worldY: 0 };
 

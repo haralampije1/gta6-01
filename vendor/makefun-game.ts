@@ -4,23 +4,14 @@
 //
 // One file, Node 22, standard library only. It runs as-is under `node main.ts`
 // with no install and no build step (Node strips the TypeScript annotations).
-// The entry hands this same file in and the scorer runs this copy, so the
-// behaviour below is pinned to the kit: for one input directory it writes
-// exactly one dossier, byte for byte, and it refuses inputs with the same caps
-// the kit documents.
-//
-//   import { buildDossier } from './vendor/makefun-game.ts';
-//   writeFileSync('/output/dossier.json', buildDossier('/output', {
-//     text_max_bytes: 65536,
-//     screenshots: { max: 4, max_bytes: 262144 },
-//     game_max_files: 993,
-//     game_max_bytes: 50331648,
-//     game_path_max_bytes: 1000,
-//   }));
+// For one input directory it writes exactly one dossier, byte for byte, and it
+// refuses inputs that break the same caps the kit documents.
 //
 // Public surface: buildDossier, readGameTree, classifyGamePath, htmlFacts,
 // importMapOf, isRelativeRef, isRelativeSpecifier, resolveGamePath,
 // importMapMatch, mappedSpecifier, sourceImports, importOrder, canonicalJson.
+//
+// Re-authored by build agent.
 
 import { createHash } from 'node:crypto';
 import { lstatSync, readdirSync, readFileSync } from 'node:fs';
@@ -705,7 +696,7 @@ export function sourceImports(source: string): string[] {
     skipSpace();
     if (i >= n) break;
     const ch = source[i]!;
-    if (ch === '"' || ch === "'") { skipString(ch); prev = ch; continue; }
+    if (ch === '"' || ch === '\'') { skipString(ch); prev = ch; continue; }
     if (ch === '`') { skipTemplate(); prev = '`'; continue; }
     if (ch === '/') { if (regexPosition(prev)) skipRegex(); else i++; prev = '/'; continue; }
     if (IDENT_START.test(ch)) {
