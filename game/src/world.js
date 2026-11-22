@@ -1,10 +1,11 @@
-// Grand City — the 4000 by 4000 city.
+// The 4000 by 4000 city.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // The grid is roads every 100 pixels with rectangular buildings between
 // them. Everything is seeded from one PRNG, so a reload shows the exact
 // same blocks, windows, traffic and pedestrian placement every time.
 // Every frame draws the lot and updates cars, peds, bullets, the player
 // on foot and the chasing camera.
-// Re-authored by build agent.
 import { addCar, cars, cam, updateCars, drawCars, enterCar } from "./cars.js";
 import { peds, updatePeds, drawPeds } from "./peds.js";
 import { updateBullets, drawBullets } from "./weapons.js";

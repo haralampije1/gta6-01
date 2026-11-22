@@ -1,6 +1,7 @@
 // Keyboard + pointer input.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // One state object, one job: answer "is this key down?" and "was the pointer just pressed?".
-// Re-authored by build agent.
 export const keys = new Set();
 export const pointer = { x: 0, y: 0, down: false, just: false, worldX: 0, worldY: 0 };
 

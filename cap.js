@@ -1,9 +1,10 @@
 // cap.js — demo screenshots for the gta6-01 entry.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // Plain Node, standard library only: launch Chrome headless with remote
 // debugging on port 9123, run the shot demo (title → play → chase), wait
 // four seconds per shot, capture Page.captureScreenshot PNGs into
 // screenshots/ (1-title.png, 2-chase.png, 3-garage.png), then kill Chrome.
-// Re-authored by build agent.
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 

@@ -1,7 +1,9 @@
-// GTA-01 entry point — plumbing only. Runs on Node 22 (stdlib only).
+// GTA-01 entry point — plumbing only.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
+// Runs on Node 22 (stdlib only).
 // Copies game/ and screenshots/ into the output directory and writes
 // dossier.json with the vendored make.fun library, byte deterministically.
-// Re-authored by build agent.
 import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";

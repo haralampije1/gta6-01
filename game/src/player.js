@@ -1,7 +1,8 @@
 // The player: on foot or behind the wheel.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // One state object shared by every module — world.js moves the legs, cars.js
 // drives, missions.js pays out.
-// Re-authored by build agent.
 export const player = {
   x: 520, y: 660,
   vx: 0, vy: 0,

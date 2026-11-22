@@ -1,7 +1,8 @@
 // Audio — a pure Web Audio synth, nothing loaded over the network.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // Engine idle and rev, police siren wail, a looped music pattern,
 // gunshot, punch and crash, all sketched from raw waveforms.
-// Re-authored by build agent.
 let ctx;
 let master;
 

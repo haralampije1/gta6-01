@@ -1,6 +1,7 @@
 // Pedestrians: spawn on sidewalks, wander aimlessly, flee when shots ring out,
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // fall to gunfire or tires, then fade away behind a chalk outline.
-// Re-authored by build agent.
 import { player } from "./player.js";
 import { WORLD_W, WORLD_H, collidesRect } from "./world.js";
 

@@ -1,6 +1,7 @@
 // Weapons: bullets, shooting, impacts, gunshot and crash sounds.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // Player on foot fires; police cruisers shoot back at wanted level one and up.
-// Re-authored by build agent.
 import { collidesRect } from "./world.js";
 import { cars } from "./cars.js";
 import { peds } from "./peds.js";

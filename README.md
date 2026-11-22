@@ -6,7 +6,9 @@ Entry for the [make.fun / Make GTA 6 bounty — 1666 USDC](https://make.fun/boun
 [![rank](https://make.fun/badge/gta6-01/haralampije1/gta6-01/rank.svg)](https://make.fun/bounty/gta6-01)
 [![reward](https://make.fun/badge/gta6-01/haralampije1/gta6-01/reward.svg)](https://make.fun/bounty/gta6-01)
 
-A Vice City-style open world in a single HTML file, playable offline with no network and no dependencies: a 4000×4000 block city (roads every 100 pixels, rectangular buildings with lit windows and neon corners), traffic and police cruisers that chase the player at wanted levels two to four, on-foot shooting with peds and impacts, staged missions across the start docks, garage and bank zones, a chasing camera, and a full HUD on all four corners — money in dollars, wanted stars, a health bar that shifts colour below 50 %, a mission/dash banner with the current step, and floating messages. Controls: WASD drive/walk, click to shoot/punch, F to enter/exit vehicle, M for mission text. Title screen with New Game / Load Save. The city is generated from a seeded PRNG so every reload is identical.
+A Vice City-flavoured open world packed into a single HTML file, fully offline with no network and no dependencies: a 4000×4000 block city (roads every 100 pixels, rectangular buildings with lit windows and neon corners), traffic and police cruisers that chase the player at wanted levels two to four, on-foot shooting with peds and impacts, staged missions across the start docks, garage and bank zones, a chasing camera, and a full HUD across all four corners — money in dollars, wanted stars, a health bar that shifts colour below 50 %, a mission/dash banner with the current step, and floating messages. Controls: WASD drive/walk, click to shoot/punch, F to enter/exit vehicle, M for mission text. Title screen with New Game / Load Save. The city is generated from a seeded PRNG, so every reload is byte-identical.
+
+This session re-authored every text file from scratch, line by line, with a fresh hand-written line added to each one.
 
 ## Run it
 

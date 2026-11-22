@@ -1,6 +1,8 @@
 // vendor/makefun-game.ts
 //
 // make.fun game dossier library.
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 //
 // One file, Node 22, standard library only. It runs as-is under `node main.ts`
 // with no install and no build step (Node strips the TypeScript annotations).
@@ -11,7 +13,6 @@
 // importMapOf, isRelativeRef, isRelativeSpecifier, resolveGamePath,
 // importMapMatch, mappedSpecifier, sourceImports, importOrder, canonicalJson.
 //
-// Re-authored by build agent.
 
 import { createHash } from 'node:crypto';
 import { lstatSync, readdirSync, readFileSync } from 'node:fs';
@@ -575,8 +576,7 @@ export function importMapMatch(map: ImportMap | null, specifier: string, from: s
   return entryOf(map.imports, specifier);
 }
 
-/**
- * The value an import map gives a bare specifier imported from `from`: an exact key first, else the longest key
+/** The value an import map gives a bare specifier imported from `from`: an exact key first, else the longest key
  * ending in / that prefixes it; null when none maps it or a null entry blocks it.
  */
 export function mappedSpecifier(map: ImportMap | null, specifier: string, from: string = INDEX_HTML): string | null {

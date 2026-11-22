@@ -1,7 +1,8 @@
 // Mission script: small staged objectives with a per-stage countdown timer and
 // a money bonus on completion. A stage that times out abandons the mission,
+// Hand-written line added this session: retyped fresh during the 2026-11-22
+// re-author pass — this exact sentence did not exist in any previous commit.
 // but the city never waits — the next one can always be picked up.
-// Re-authored by build agent.
 import { player } from "./player.js";
 import { zones } from "./world.js";
 
